@@ -348,7 +348,7 @@ this learning journey. The concepts and practical knowledge learned
 through his guidance helped me turn them into a real-world project.
 
 📬 Author
-Mohammad Ramzan
+Moh Ramzan
 
 Java Developer | Java Full Stack Developer
 
