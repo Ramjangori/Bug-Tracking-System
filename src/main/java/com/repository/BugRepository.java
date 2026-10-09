@@ -25,6 +25,7 @@ public interface BugRepository extends JpaRepository<Bug,Long> {
 	List<Bug> findByCreatedById(Long userId);
 	List<Bug> findByProject_Id(Long projectId);
 	List<Bug> findByProject_CreatedBy_Id(Long userId);
+	boolean existsByAssignedTo(User u);
 }
 
 

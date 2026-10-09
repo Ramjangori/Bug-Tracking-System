@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import com.exception.DeleteUserException;
+import com.repository.BugRepository;
 import com.repository.ProjectRepository;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -27,12 +28,16 @@ public class UserServiceImpl implements UserService {
 	private final UserMapper userMapper;
 	private final PasswordEncoder passwordEncoder;
 	private final ProjectRepository projectRepository;
+	private final BugRepository bugRepository;
 
-	public UserServiceImpl(UserRepository userRepository, UserMapper userMapper ,PasswordEncoder passwordEncoder , ProjectRepository projectRepository ) {
+	public UserServiceImpl(UserRepository userRepository, UserMapper userMapper ,
+			PasswordEncoder passwordEncoder , ProjectRepository projectRepository ,
+			BugRepository bugRepository) {
 		this.userRepository = userRepository;
 		this.userMapper = userMapper;
 		this.passwordEncoder = passwordEncoder;
 		this.projectRepository=projectRepository;
+		this.bugRepository = bugRepository;
 	}
 
 	// Register User
@@ -125,19 +130,27 @@ public class UserServiceImpl implements UserService {
 	// Delete User
 	@Override
 	public void deleteUser(Long id) {
-        
-		
-		User existingUser = userRepository.findById(id)
-				.orElseThrow(() -> new UserNotFoundException("User with id " + id + " not found."));
 
-		if (projectRepository.existsByCreatedBy(existingUser)) {
-		    throw new DeleteUserException(
-		        "User cannot be deleted because they are a project creator."
-		    );
-		}
+	    User existingUser = userRepository.findById(id)
+	            .orElseThrow(() ->
+	                new UserNotFoundException(
+	                    "User with id " + id + " not found."
+	                )
+	            );
 
+	    if (projectRepository.existsByCreatedBy(existingUser)) {
+	        throw new DeleteUserException(
+	            "User cannot be deleted because they are a project creator."
+	        );
+	    }
 
-		userRepository.delete(existingUser);
+	    if (bugRepository.existsByAssignedTo(existingUser)) {
+	        throw new DeleteUserException(
+	            "User cannot be deleted because they are assigned to bugs."
+	        );
+	    }
+
+	    userRepository.delete(existingUser);
 	}
 	
 	// get User Profile 
