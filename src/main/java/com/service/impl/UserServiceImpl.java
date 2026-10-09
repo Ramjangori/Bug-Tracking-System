@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import com.dto.UserRequest;
 import com.dto.UserResponse;
 import com.entity.User;
+import com.enums.Role;
 import com.exception.EmailAlreadyExists;
 import com.exception.UserNotFoundException;
 import com.mapper.UserMapper;
@@ -38,6 +39,15 @@ public class UserServiceImpl implements UserService {
 	@Override
 	public UserResponse registerUser(UserRequest user) {
 
+		  // Admin Registration Not allowed
+	    if (user.getRole() == Role.ADMIN) {
+	        throw new AccessDeniedException("Admin registration is not allowed.");
+	    }
+	    
+	    if (!user.getEmail().endsWith("@regex.com")) {
+	        throw new AccessDeniedException("Please use your company email.");
+	    }
+	    
 		if (userRepository.findByEmail(user.getEmail()).isPresent()) {
 			throw new EmailAlreadyExists("Email '" + user.getEmail() + "' already exists.");
 		}
@@ -115,15 +125,16 @@ public class UserServiceImpl implements UserService {
 	// Delete User
 	@Override
 	public void deleteUser(Long id) {
-
+        
+		
 		User existingUser = userRepository.findById(id)
 				.orElseThrow(() -> new UserNotFoundException("User with id " + id + " not found."));
 
-		if(projectRepository.existsByCreatedBy(existingUser)){
-
-			throw new DeleteUserException("User Involved in Project Can Not be Delete .. First Delete Project");
+		if (projectRepository.existsByCreatedBy(existingUser)) {
+		    throw new DeleteUserException(
+		        "User cannot be deleted because they are a project creator."
+		    );
 		}
-
 
 
 		userRepository.delete(existingUser);
@@ -144,6 +155,17 @@ public class UserServiceImpl implements UserService {
 	                            "User with email " + email + " not found."));
 
 	    return userMapper.toResponse(user);
+	}
+	
+	// find by role 
+	@Override
+	public List<UserResponse> getAvailableMembers() {
+
+	    List<User> users = userRepository.findByRoleIn(
+	            List.of(Role.DEVELOPER, Role.TESTER)
+	    );
+
+	    return userMapper.toResponse(users);
 	}
 
 }

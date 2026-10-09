@@ -59,6 +59,15 @@ public class UserController {
 		return ResponseEntity.status(HttpStatus.OK).body(userList); 
 			
 	}
+	
+	@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+	@GetMapping("/available-members")
+	public ResponseEntity<List<UserResponse>> getAvailableMembers() {
+
+	    return ResponseEntity.ok(
+	            userService.getAvailableMembers()
+	    );
+	}
 
 	@PreAuthorize("isAuthenticated()")
 	@PutMapping("/{id}")

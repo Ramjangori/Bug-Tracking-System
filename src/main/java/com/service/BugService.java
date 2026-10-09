@@ -17,4 +17,5 @@ public interface BugService {
 
     void deleteBug(Long id);
     BugResponse assignBug(Long bugId, Long developerId);
+    List<BugResponse> getBugsByProject(Long projectId);
 }

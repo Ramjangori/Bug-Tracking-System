@@ -105,4 +105,15 @@ public class BugController {
                 .status(HttpStatus.OK)
                 .body("Bug deleted successfully.");
     }
+    
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/project/{projectId}")
+    public ResponseEntity<List<BugResponse>> getBugsByProject(
+            @PathVariable Long projectId) {
+
+        List<BugResponse> response =
+                bugService.getBugsByProject(projectId);
+
+        return ResponseEntity.ok(response);
+    }
 }

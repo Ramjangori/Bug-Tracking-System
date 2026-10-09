@@ -16,4 +16,5 @@ public interface CommentService {
     CommentResponse updateComment(Long id, CommentRequest request);
 
     void deleteComment(Long id);
+    List<CommentResponse> getCommentsByBug(Long bugId);
 }

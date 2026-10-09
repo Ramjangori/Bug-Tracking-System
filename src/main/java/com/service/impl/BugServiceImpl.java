@@ -166,11 +166,13 @@ public class BugServiceImpl implements BugService {
 
         List<Bug> bugs;
 
-        if (user.getRole() == Role.ADMIN ||
-                user.getRole() == Role.MANAGER) {
+        if (user.getRole() == Role.ADMIN) {
 
-            // ADMIN + MANAGER → All bugs
             bugs = bugRepository.findAll();
+
+        } else if (user.getRole() == Role.MANAGER) {
+
+            bugs = bugRepository.findByProject_CreatedBy_Id(user.getId());
 
         } else if (user.getRole() == Role.DEVELOPER) {
 
@@ -238,6 +240,15 @@ public class BugServiceImpl implements BugService {
         return bugMapper.toResponse(updatedBug);
     }
 
+    @Override
+    public List<BugResponse> getBugsByProject(Long projectId) {
+
+        List<Bug> bugs = bugRepository.findByProject_Id(projectId);
+
+        return bugs.stream()
+                .map(bugMapper::toResponse)
+                .toList();
+    }
 
     // Delete Bug
     @Override

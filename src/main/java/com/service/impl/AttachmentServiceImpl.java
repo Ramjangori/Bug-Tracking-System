@@ -1,5 +1,19 @@
 package com.service.impl;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.entity.Attachment;
 import com.entity.Bug;
 import com.entity.User;
@@ -10,18 +24,6 @@ import com.repository.AttachmentRepository;
 import com.repository.BugRepository;
 import com.repository.UserRepository;
 import com.service.AttachmentService;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Service
 public class AttachmentServiceImpl implements AttachmentService {
@@ -142,5 +144,10 @@ public class AttachmentServiceImpl implements AttachmentService {
 
             throw new RuntimeException("Failed to delete file.", e);
         }
+    }
+    
+    @Override
+    public List<Attachment> getAttachmentsByBug(Long bugId) {
+        return attachmentRepository.findByBug_Id(bugId);
     }
 }

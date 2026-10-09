@@ -1,5 +1,12 @@
 package com.service.impl;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+
 import com.dto.ProjectRequest;
 import com.dto.ProjectResponse;
 import com.entity.Project;
@@ -7,17 +14,13 @@ import com.entity.ProjectMember;
 import com.entity.User;
 import com.enums.Role;
 import com.exception.ProjectNotFoundException;
+import com.exception.UpdateProjectException;
 import com.exception.UserNotFoundException;
 import com.mapper.ProjectMapper;
 import com.repository.ProjectMemberRepository;
 import com.repository.ProjectRepository;
 import com.repository.UserRepository;
 import com.service.ProjectService;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 public class ProjectServiceImpl implements ProjectService {
@@ -69,16 +72,28 @@ public class ProjectServiceImpl implements ProjectService {
                         new ProjectNotFoundException("Project Not Found.."));
 
         String email = SecurityContextHolder.getContext()
-                .getAuthentication().getName();
+                .getAuthentication()
+                .getName();
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
                         new UserNotFoundException(
                                 "User with email " + email + " not found."));
 
-        // ADMIN and MANAGER can see any project
-        if (user.getRole() == Role.ADMIN ||
-                user.getRole() == Role.MANAGER) {
+        // ADMIN can see any project
+        if (user.getRole() == Role.ADMIN) {
+
+            return projectMapper.toResponse(project);
+        }
+
+        // MANAGER can see only his own project
+        if (user.getRole() == Role.MANAGER) {
+
+            if (!project.getCreatedBy().getId().equals(user.getId())) {
+
+                throw new AccessDeniedException(
+                        "You can access only your own projects.");
+            }
 
             return projectMapper.toResponse(project);
         }
@@ -88,45 +103,55 @@ public class ProjectServiceImpl implements ProjectService {
                 .existsByProject_IdAndUser_Id(id, user.getId());
 
         if (!isMember) {
+
             throw new AccessDeniedException(
                     "You are not a member of this project.");
         }
 
         return projectMapper.toResponse(project);
     }
-
-
     @Override
     public List<ProjectResponse> getAllProjects() {
 
         String email = SecurityContextHolder.getContext()
-                .getAuthentication().getName();
+                .getAuthentication()
+                .getName();
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
                         new UserNotFoundException(
                                 "User with email " + email + " not found."));
 
-        // ADMIN and MANAGER can see all projects
-        if (user.getRole() == Role.ADMIN ||
-                user.getRole() == Role.MANAGER) {
+        // ADMIN can see all projects
+        if (user.getRole() == Role.ADMIN) {
 
-            List<Project> list = projectRepository.findAll();
+            List<Project> projects = projectRepository.findAll();
 
-            return projectMapper.toResponse(list);
+            return projectMapper.toResponse(projects);
         }
 
-        // DEVELOPER and TESTER can see only their projects
+        // MANAGER can see only his own projects
+        if (user.getRole() == Role.MANAGER) {
+
+            List<Project> projects =
+                    projectRepository.findByCreatedBy(user);
+
+            return projectMapper.toResponse(projects);
+        }
+
+        // DEVELOPER and TESTER can see only their member projects
         List<ProjectMember> memberships =
                 projectMemberRepository.findByUser_Id(user.getId());
 
-        List<Project> projects = memberships.stream()
-                .map(ProjectMember::getProject)
-                .toList();
+        List<Project> projects = new ArrayList<>();
+
+        for (ProjectMember member : memberships) {
+
+            projects.add(member.getProject());
+        }
 
         return projectMapper.toResponse(projects);
     }
-
 
     @Override
     public ProjectResponse updateProject(Long id, ProjectRequest request) {
@@ -134,6 +159,24 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = projectRepository.findById(id)
                 .orElseThrow(() ->
                         new ProjectNotFoundException("Project Not Found.."));
+
+        String email = SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getName();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new UserNotFoundException(
+                                "User with email " + email + " not found."));
+
+        // Manager can update only his own project
+        if (user.getRole() == Role.MANAGER
+                && !project.getCreatedBy().getId().equals(user.getId())) {
+
+            throw new UpdateProjectException(
+                    "Manager can update only their own project.");
+        }
 
         project.setName(request.getName());
         project.setDescription(request.getDescription());

@@ -14,7 +14,8 @@ public interface UserService {
     UserResponse getUserById(Long id);
 
     List<UserResponse> getAllUsers();
-
+    
+    List<UserResponse> getAvailableMembers();
    
     UserResponse updateUser(Long id, UserRequest user);
     
@@ -22,4 +23,5 @@ public interface UserService {
 
     
     void deleteUser(Long id);
+    
 }

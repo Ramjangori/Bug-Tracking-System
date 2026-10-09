@@ -134,4 +134,17 @@ public class CommentServiceImpl implements CommentService {
 
         commentRepository.delete(comment);
     }
+    
+    @Override
+    public List<CommentResponse> getCommentsByBug(Long bugId) {
+
+        bugRepository.findById(bugId)
+                .orElseThrow(() -> new BugNotFoundException("Bug not found."));
+
+        List<Comment> comments = commentRepository.findByBug_Id(bugId);
+
+        return comments.stream()
+                .map(commentMapper::toResponse)
+                .toList();
+    }
 }

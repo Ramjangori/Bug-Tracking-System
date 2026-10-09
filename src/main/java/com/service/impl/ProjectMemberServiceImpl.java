@@ -1,9 +1,17 @@
 package com.service.impl;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+
 import com.dto.UserResponse;
 import com.entity.Project;
 import com.entity.ProjectMember;
 import com.entity.User;
+import com.enums.Role;
 import com.exception.ProjectNotFoundException;
 import com.exception.UserNotFoundException;
 import com.mapper.UserMapper;
@@ -11,10 +19,6 @@ import com.repository.ProjectMemberRepository;
 import com.repository.ProjectRepository;
 import com.repository.UserRepository;
 import com.service.ProjectMemberService;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 public class ProjectMemberServiceImpl implements ProjectMemberService {
@@ -37,6 +41,8 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     }
 
 
+  
+
     @Override
     public void addMember(Long projectId, Long userId) {
 
@@ -44,6 +50,26 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
                 .orElseThrow(() ->
                         new ProjectNotFoundException(
                                 "Project Not Found with Id : " + projectId));
+
+        String email = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new UserNotFoundException(
+                                "User with email " + email + " not found."));
+
+        // Manager can add member only to his own project
+        if (currentUser.getRole() == Role.MANAGER) {
+
+            if (!project.getCreatedBy().getId()
+                    .equals(currentUser.getId())) {
+
+                throw new AccessDeniedException(
+                        "Manager can add members only to their own project.");
+            }
+        }
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() ->
@@ -53,10 +79,10 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
         boolean alreadyMember =
                 projectMemberRepository.existsByProject_IdAndUser_Id(
                         projectId,
-                        userId
-                );
+                        userId);
 
         if (alreadyMember) {
+
             throw new AccessDeniedException(
                     "User is already a member of this project.");
         }
@@ -70,33 +96,111 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     }
 
 
+   
+
     @Override
     public List<UserResponse> getAllMembers(Long projectId) {
 
-        // Check project exists
-        projectRepository.findById(projectId)
+        Project project = projectRepository.findById(projectId)
                 .orElseThrow(() ->
                         new ProjectNotFoundException(
                                 "Project Not Found with Id : " + projectId));
+
+        String email = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new UserNotFoundException(
+                                "User with email " + email + " not found."));
+
+        // Manager can see members only of his own project
+        if (currentUser.getRole() == Role.MANAGER) {
+
+            if (!project.getCreatedBy().getId()
+                    .equals(currentUser.getId())) {
+
+                throw new AccessDeniedException(
+                        "Manager can access only their own project.");
+            }
+        }
+
+        // Developer and Tester must be project members
+        if (currentUser.getRole() == Role.DEVELOPER
+                || currentUser.getRole() == Role.TESTER) {
+
+            boolean isMember =
+                    projectMemberRepository.existsByProject_IdAndUser_Id(
+                            projectId,
+                            currentUser.getId());
+
+            if (!isMember) {
+
+                throw new AccessDeniedException(
+                        "You are not a member of this project.");
+            }
+        }
 
         List<ProjectMember> members =
                 projectMemberRepository.findByProject_Id(projectId);
 
-        return members.stream()
-                .map(ProjectMember::getUser)
-                .map(userMapper::toResponse)
-                .toList();
+        List<UserResponse> users = new ArrayList<>();
+
+        for (ProjectMember member : members) {
+
+            users.add(userMapper.toResponse(member.getUser()));
+        }
+
+        return users;
     }
 
+
+    
 
     @Override
     public UserResponse getMemberById(Long projectId, Long userId) {
 
-        // Check project exists
-        projectRepository.findById(projectId)
+        Project project = projectRepository.findById(projectId)
                 .orElseThrow(() ->
                         new ProjectNotFoundException(
                                 "Project Not Found with Id : " + projectId));
+
+        String email = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new UserNotFoundException(
+                                "User with email " + email + " not found."));
+
+        // Manager can see member only from his own project
+        if (currentUser.getRole() == Role.MANAGER) {
+
+            if (!project.getCreatedBy().getId()
+                    .equals(currentUser.getId())) {
+
+                throw new AccessDeniedException(
+                        "Manager can access only their own project.");
+            }
+        }
+
+        // Developer and Tester must be project members
+        if (currentUser.getRole() == Role.DEVELOPER
+                || currentUser.getRole() == Role.TESTER) {
+
+            boolean isMember =
+                    projectMemberRepository.existsByProject_IdAndUser_Id(
+                            projectId,
+                            currentUser.getId());
+
+            if (!isMember) {
+
+                throw new AccessDeniedException(
+                        "You are not a member of this project.");
+            }
+        }
 
         ProjectMember member =
                 projectMemberRepository
@@ -109,8 +213,35 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     }
 
 
+  
+
     @Override
     public void deleteMember(Long projectId, Long userId) {
+
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() ->
+                        new ProjectNotFoundException(
+                                "Project Not Found with Id : " + projectId));
+
+        String email = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new UserNotFoundException(
+                                "User with email " + email + " not found."));
+
+        // Manager can remove member only from his own project
+        if (currentUser.getRole() == Role.MANAGER) {
+
+            if (!project.getCreatedBy().getId()
+                    .equals(currentUser.getId())) {
+
+                throw new AccessDeniedException(
+                        "Manager can remove members only from their own project.");
+            }
+        }
 
         ProjectMember member =
                 projectMemberRepository

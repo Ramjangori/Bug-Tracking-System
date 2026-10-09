@@ -1,7 +1,10 @@
 package com.service;
 
-import com.entity.Attachment;
+import java.util.List;
+
 import org.springframework.web.multipart.MultipartFile;
+
+import com.entity.Attachment;
 
 public interface AttachmentService {
 
@@ -10,4 +13,5 @@ public interface AttachmentService {
     Attachment getAttachment(Long id);
 
     void deleteAttachment(Long id);
+    List<Attachment> getAttachmentsByBug(Long bugId);
 }

@@ -95,4 +95,15 @@ public class CommentController {
                 .status(HttpStatus.OK)
                 .body("Comment deleted successfully.");
     }
+    
+    // get comments By bug 
+    @GetMapping("/bug/{bugId}")
+    public ResponseEntity<List<CommentResponse>> getCommentsByBug(
+            @PathVariable Long bugId) {
+
+        List<CommentResponse> response =
+                commentService.getCommentsByBug(bugId);
+
+        return ResponseEntity.ok(response);
+    }
 }
